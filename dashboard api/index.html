@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThingSpeak API Data with Graphs</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* General Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      color: #444;
+      margin: 20px 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    .section-title {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #555;
+    }
+
+    canvas {
+      margin: 20px 0;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>ThingSpeak Data with Graphs</h1>
+  <div class="container">
+    <div id="channel-info" class="section">
+      <div class="section-title">Channel Information</div>
+      <div>Loading channel info...</div>
+    </div>
+
+    <div id="graphs" class="section">
+      <div class="section-title">Graphs</div>
+      <div>Loading graphs...</div>
+    </div>
+  </div>
+
+  <script>
+    // API URL
+    const apiUrl = 'https://api.thingspeak.com/channels/1596152/feeds.json?results=10';
+
+    // Fetch data from the API
+    fetch(apiUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        displayChannelInfo(data.channel);
+        drawGraphs(data.feeds, data.channel);
+      })
+      .catch(error => {
+        document.querySelector("#channel-info").innerHTML = `<p class="error">Error: ${error.message}</p>`;
+        document.querySelector("#graphs").innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      });
+
+    // Function to display channel information
+    function displayChannelInfo(channel) {
+      const channelInfo = document.getElementById("channel-info");
+      channelInfo.innerHTML = `
+        <p><strong>Channel Name:</strong> ${channel.name}</p>
+        <p><strong>Created At:</strong> ${new Date(channel.created_at).toLocaleString()}</p>
+        <p><strong>Updated At:</strong> ${new Date(channel.updated_at).toLocaleString()}</p>
+        <p><strong>Fields:</strong> 
+          <ul>
+            <li>${channel.field1}</li>
+            <li>${channel.field2}</li>
+            <li>${channel.field3}</li>
+            <li>${channel.field4}</li>
+            <li>${channel.field5}</li>
+            <li>${channel.field6}</li>
+          </ul>
+        </p>
+      `;
+    }
+
+    // Function to draw graphs
+    function drawGraphs(feeds, channel) {
+      const graphsContainer = document.getElementById("graphs");
+      graphsContainer.innerHTML = ''; // Clear loading message
+
+      // Prepare data for each field
+      const fields = [
+        { key: 'field1', label: channel.field1 },
+        { key: 'field2', label: channel.field2 },
+        { key: 'field3', label: channel.field3 },
+        { key: 'field4', label: channel.field4 },
+        { key: 'field5', label: channel.field5 },
+        { key: 'field6', label: channel.field6 },
+      ];
+
+      fields.forEach(field => {
+        if (field.label) {
+          const timestamps = feeds.map(feed => new Date(feed.created_at).toLocaleString());
+          const values = feeds.map(feed => feed[field.key]);
+
+          // Create canvas for the graph
+          const canvas = document.createElement('canvas');
+          canvas.id = `chart-${field.key}`;
+          graphsContainer.appendChild(canvas);
+
+          // Draw the chart
+          new Chart(canvas, {
+            type: 'line',
+            data: {
+              labels: timestamps,
+              datasets: [{
+                label: field.label,
+                data: values,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 1,
+                tension: 0.3,
+              }],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top',
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: 'Timestamp',
+                  },
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: field.label,
+                  },
+                  beginAtZero: true,
+                },
+              },
+            },
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
